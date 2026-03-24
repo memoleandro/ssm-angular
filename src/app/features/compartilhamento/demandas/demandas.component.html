@@ -291,3 +291,18 @@
     </div>
   </div>
 </div>
+<!-- Botão de reset — visível apenas para a Diretora -->
+<div *ngIf="user()?.cargo === 'Diretora'"
+  style="margin-top:24px;padding:16px 20px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:12px;display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <div style="font-size:13px;font-weight:700;color:#dc2626">Área Administrativa</div>
+    <div style="font-size:12px;color:#6b7280;margin-top:2px">
+      Zera todas as solicitações e volta aos dados iniciais do sistema.
+    </div>
+  </div>
+  <button
+    (click)="zerarDados()"
+    style="background:#dc2626;color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer">
+    🗑 Zerar Dados
+  </button>
+</div>
