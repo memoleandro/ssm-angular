@@ -1,0 +1,173 @@
+<ng-container *ngIf="sol() as s">
+
+  <div class="page-inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div class="pi-title">Resultado da Busca</div>
+        <div style="font-size:13px;color:var(--g6)">
+          Contrato: <strong>{{ s.contratoObj?.nome }}</strong> &nbsp;|&nbsp; {{ s.cargo }}
+        </div>
+      </div>
+      <button class="bo" (click)="novaBusca()">Nova Busca</button>
+    </div>
+
+    <div style="background:var(--g0);border:1.5px solid var(--g2);border-radius:10px;padding:12px 18px;display:flex;gap:20px;flex-wrap:wrap;font-size:13px">
+      <div><span style="font-weight:700;color:var(--g6)">Contrato: </span><strong>{{ s.contratoObj?.nome }}</strong></div>
+      <div><span style="font-weight:700;color:var(--g6)">Superintendência: </span>{{ s.contratoObj?.sup }}</div>
+      <div *ngIf="s.vagaCritica === 'SIM'"
+        style="background:var(--rdbg);border:1px solid var(--rdbdr);border-radius:6px;padding:3px 10px;color:var(--red);font-weight:700;font-size:12px">
+        VAGA CRÍTICA{{ s.criticidade ? ' — ' + s.criticidade : '' }}
+      </div>
+      <div *ngIf="diasSla !== null">
+        <span style="font-weight:700;color:var(--g6)">SLA: </span>
+        <strong [style.color]="diasSla > 7 ? 'var(--grn)' : diasSla > 0 ? 'var(--ora)' : 'var(--red)'">
+          {{ diasSla > 0 ? diasSla + ' dias úteis' : 'Encerrado' }}
+        </strong>
+      </div>
+      <div><span style="font-weight:700;color:var(--g6)">Encontrados: </span><strong style="color:var(--t6)">{{ res().length }}</strong></div>
+    </div>
+  </div>
+
+  <div class="page-inner">
+    <div class="card-title">
+      <span class="cs">3</span> Profissionais Encontrados
+      <span style="margin-left:auto;font-size:11px;color:var(--g4);font-weight:400;text-transform:none;letter-spacing:0">
+        Selecione os profissionais para iniciar a tratativa
+      </span>
+    </div>
+
+    <div *ngFor="let p of res(); let i = index" class="rc"
+      [style.border]="selected[p.mat] ? '2.5px solid var(--t5)' : (!p.apto && p.match?.pct === 100 ? '2.5px solid var(--red)' : '')"
+      [style.background]="selected[p.mat] ? 'var(--t0)' : (!p.apto && p.match?.pct === 100 ? '#fff5f5' : '')"
+      (click)="toggleSelect(p)">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+
+        <!-- Checkbox -->
+        <div style="flex-shrink:0;margin-top:2px">
+          <div *ngIf="p.apto"
+            style="width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center"
+            [style.border]="selected[p.mat] ? '2px solid var(--t5)' : '2px solid var(--g2)'"
+            [style.background]="selected[p.mat] ? 'var(--t5)' : 'white'">
+            <span *ngIf="selected[p.mat]" style="color:white;font-size:13px;font-weight:800">✓</span>
+          </div>
+          <div *ngIf="!p.apto"
+            style="width:20px;height:20px;border:2px solid var(--rdbdr);border-radius:4px;background:var(--rdbg);display:flex;align-items:center;justify-content:center">
+            <span style="color:var(--red);font-size:11px">✗</span>
+          </div>
+        </div>
+
+        <!-- Rank -->
+        <div class="rcrk" [style.background]="rankBg(p)">{{ i + 1 }}</div>
+
+        <!-- Conteúdo -->
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--g8)">{{ p.nome }}</div>
+              <div style="font-size:12px;color:var(--g6);margin-top:2px">{{ p.cargo }}</div>
+              <div style="font-size:11px;color:var(--g4)">{{ p.contrato }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+              <div style="display:flex;gap:6px;align-items:center">
+                <span style="color:white;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700"
+                  [style.background]="p.match?.pct === 100 ? 'var(--t6)' : 'var(--ora)'">
+                  {{ p.match?.pct }}% aderência
+                </span>
+                <span style="border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700"
+                  [style.background]="p.apto ? 'var(--grnbg)' : 'var(--rdbg)'"
+                  [style.color]="p.apto ? 'var(--grn)' : 'var(--red)'"
+                  [style.border]="p.apto ? '1px solid #bbf7d0' : '1px solid var(--rdbdr)'">
+                  {{ p.apto ? 'Apto' : 'NÃO APTO' }}
+                </span>
+              </div>
+              <span style="font-size:11px;color:var(--g6)">
+                {{ p.comp === 0 ? 'Sem compartilhamento ativo' : p.comp + ' compartilhamento(s) ativo(s)' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Custos -->
+          <div *ngIf="p.custo > 0" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:6px">
+            <span style="font-size:12px;color:var(--g6)">
+              Custo original: <strong style="color:var(--g8)">{{ fmtR(p.custo) }}</strong>
+            </span>
+            <span *ngIf="p.adic > 0" style="font-size:12px;color:var(--g6)">
+              + Adicional: <strong style="color:var(--ora)">{{ fmtR(p.adic) }}</strong>
+            </span>
+            <span *ngIf="p.adic > 0" style="font-size:12px;color:var(--g6)">
+              = Total atual: <strong style="color:var(--t6);font-size:13px">{{ fmtR(p.custo + p.adic) }}</strong>
+            </span>
+            <span *ngIf="p.adic === 0" style="font-size:11px;color:var(--g4)">
+              Sem adicional (sem compartilhamento ativo)
+            </span>
+          </div>
+
+          <!-- Motivo não apto -->
+          <div *ngIf="!p.apto && p.motivo"
+            style="margin-top:8px;background:var(--rdbg);border:1px solid var(--rdbdr);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--red)">
+            Motivo: {{ p.motivo }}
+          </div>
+
+          <!-- Alerta inapto 100% -->
+          <div *ngIf="!p.apto && p.match?.pct === 100"
+            style="margin-top:8px;background:#fef3c7;border:1px solid var(--orbdr);border-radius:8px;padding:6px 10px;font-size:12px;color:#92400e;font-weight:600">
+            Perfil com 100% de aderência. Avalie a possibilidade de reversão do impedimento.
+          </div>
+
+          <!-- Compartilhamentos ativos -->
+          <div *ngIf="p.comp > 0"
+            style="margin-top:8px;padding:10px 12px;background:var(--g0);border-radius:10px;border:1px solid var(--g2)">
+            <div style="font-size:11px;font-weight:700;color:var(--g6);margin-bottom:6px">
+              {{ p.comp === 1 ? '1 compartilhamento ativo' : p.comp + ' compartilhamentos ativos' }}
+            </div>
+            <div *ngFor="let x of getCompContratos(p); let j = index"
+              style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:2px">
+              <span style="color:var(--t6);font-weight:700">Comp. {{ j + 1 }}:</span>
+              <span style="color:var(--g8);font-weight:600">{{ x.c.replace('MEMORA.', '') }}</span>
+              <span *ngIf="x.pp" style="color:var(--g4)">— {{ x.pp }}</span>
+            </div>
+          </div>
+
+          <!-- Tags de aderência -->
+          <div *ngIf="p.match?.details?.length" style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">
+            <span *ngFor="let d of p.match!.details"
+              style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600"
+              [style.background]="d.ok ? 'var(--grnbg)' : 'var(--rdbg)'"
+              [style.color]="d.ok ? 'var(--grn)' : 'var(--red)'"
+              [style.border]="d.ok ? '1px solid #bbf7d0' : '1px solid var(--rdbdr)'">
+              {{ d.ok ? '✓' : '✗' }} {{ d.item }}
+            </span>
+          </div>
+
+          <!-- Proposta de valor -->
+          <div *ngIf="selected[p.mat]"
+            style="margin-top:12px;padding:12px 14px;background:var(--t0);border-radius:10px;border:1.5px solid var(--t4)"
+            (click)="$event.stopPropagation()">
+            <label class="fl">Registrar Proposta de Valor Adicional</label>
+            <div style="display:flex;gap:10px;align-items:center">
+              <input class="fi" style="max-width:200px" placeholder="R$ 0,00"
+                [value]="selected[p.mat].proposta"
+                (input)="setProposta(p.mat, $any($event.target).value)" />
+              <div *ngIf="selected[p.mat].propostaNum > 0 && p.custo > 0" style="font-size:13px;color:var(--g6)">
+                {{ fmtR(p.custo) }} +
+                <strong style="color:var(--ora)">{{ fmtR(selected[p.mat].propostaNum) }}</strong> =
+                <strong style="color:var(--t6)">{{ fmtR(p.custo + selected[p.mat].propostaNum) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1.5px solid var(--g2)">
+      <button class="bo" style="font-size:13px" (click)="novaBusca()">
+        Solicitar Abertura de Vaga ao RH
+      </button>
+      <button class="bp" [disabled]="!canIniciar" (click)="iniciarTratativa()">
+        Iniciar Tratativas ({{ selectedList.length }} selecionado{{ selectedList.length !== 1 ? 's' : '' }})
+      </button>
+    </div>
+  </div>
+
+</ng-container>

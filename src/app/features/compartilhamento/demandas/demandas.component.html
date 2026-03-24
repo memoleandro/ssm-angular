@@ -1,0 +1,293 @@
+<div class="page-inner">
+  <div class="pi-title">Demandas de Compartilhamento</div>
+  <div class="pi-sub">
+    {{ user()?.cargo === 'Gerente de Contrato'
+       ? 'Solicitações registradas por você, ' + user()?.nome
+       : 'Todas as solicitações — ' + user()?.cargo }}
+  </div>
+
+  <!-- Cards de resumo -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+    <div *ngFor="let card of cards"
+      (click)="toggleFiltro(card.key)"
+      [style.background]="card.bg"
+      [style.border]="'2px solid ' + cardBorder(card)"
+      [style.box-shadow]="cardShadow(card)"
+      style="border-radius:10px;padding:12px 16px;cursor:pointer;min-width:100px;transition:all .15s">
+      <div style="font-size:24px;font-weight:800" [style.color]="card.color">{{ card.n }}</div>
+      <div style="font-size:11px;font-weight:600;margin-top:2px" [style.color]="card.color">{{ card.label }}</div>
+    </div>
+  </div>
+
+  <!-- Fluxo de status -->
+  <div style="margin-bottom:20px;padding:10px 14px;background:var(--g0);border-radius:10px;display:flex;gap:6px;align-items:center;overflow-x:auto;flex-wrap:nowrap">
+    <ng-container *ngFor="let s of statusFlow; let i = index">
+      <div style="padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0"
+        [style.background]="getStatusStyle(s).bg"
+        [style.color]="getStatusStyle(s).color"
+        [style.border]="'1px solid ' + getStatusStyle(s).border">
+        {{ s }}
+      </div>
+      <span *ngIf="i < statusFlow.length - 1" style="color:var(--g4);font-size:11px;flex-shrink:0">→</span>
+    </ng-container>
+  </div>
+
+  <!-- Sem resultados -->
+  <div *ngIf="ordenados.length === 0"
+    style="text-align:center;padding:40px 20px;color:var(--g4);font-size:14px">
+    Nenhuma solicitação encontrada.
+  </div>
+
+  <!-- Tabela -->
+  <div *ngIf="ordenados.length > 0" style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--t8)">
+          <th *ngFor="let h of ['Código','Status','Criticidade','SLA de Alocação','Data de Criação','Contrato','Cargo','Profissional','Ações']"
+            style="padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:white;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">
+            {{ h }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of ordenados; let i = index"
+          [style.background]="i % 2 === 0 ? 'white' : 'var(--g0)'"
+          style="border-bottom:1px solid var(--g2)">
+
+          <!-- Código -->
+          <td style="padding:10px 12px">
+            <span class="cod" style="font-size:12px">{{ c.cod }}</span>
+          </td>
+
+          <!-- Status -->
+          <td style="padding:10px 12px;white-space:nowrap">
+            <span style="border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap"
+              [style.background]="getStatusStyle(c.status).bg"
+              [style.color]="getStatusStyle(c.status).color"
+              [style.border]="'1px solid ' + getStatusStyle(c.status).border">
+              {{ c.status }}
+            </span>
+          </td>
+
+          <!-- Criticidade -->
+          <td style="padding:10px 12px;text-align:center">
+            <span *ngIf="c.vagaCritica === 'SIM'"
+              [title]="c.criticidade"
+              style="display:inline-flex;align-items:center;gap:4px;background:var(--rdbg);color:var(--red);border:1px solid var(--rdbdr);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;cursor:help;white-space:nowrap">
+              ⚠ Crítica
+            </span>
+            <span *ngIf="c.vagaCritica !== 'SIM'" style="color:var(--g2)">—</span>
+          </td>
+
+          <!-- SLA de Alocação -->
+          <td style="padding:10px 12px;white-space:nowrap">
+            <span style="padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600"
+              [style.background]="slaInfo(c).bg"
+              [style.color]="slaInfo(c).color">
+              {{ slaInfo(c).txt }}
+            </span>
+          </td>
+
+          <!-- Data de Criação -->
+          <td style="padding:10px 12px;white-space:nowrap;color:var(--g6)">
+            {{ fmtD(c.dataInclusao) }}
+          </td>
+
+          <!-- Contrato -->
+          <td style="padding:10px 12px;font-weight:600;color:var(--g8);white-space:nowrap">
+            {{ c.contratoNome }}
+          </td>
+
+          <!-- Cargo -->
+          <td style="padding:10px 12px;color:var(--g6);font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            [title]="c.cargo">
+            {{ c.cargo.split(' - ').slice(1).join(' - ') || c.cargo }}
+          </td>
+
+          <!-- Profissional -->
+          <td style="padding:10px 12px;max-width:180px">
+            <span *ngIf="semNome(c)" style="color:var(--ora);font-style:italic;font-size:12px">
+              Em definição
+            </span>
+            <span *ngIf="!semNome(c)" style="font-weight:600;color:var(--g8)">
+              {{ c.profs[0]?.nome }}
+            </span>
+          </td>
+
+          <!-- Ações -->
+          <td style="padding:10px 12px;white-space:nowrap">
+            <div style="display:flex;gap:5px">
+              <button
+                (click)="abrirVerMais(c)"
+                style="background:var(--t0);color:var(--t6);border:1.5px solid var(--t4);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+                Ver mais
+              </button>
+              <button *ngIf="semNome(c) && !isCancelado(c)"
+                style="background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+                Indicar
+              </button>
+              <button *ngIf="!isCancelado(c)"
+                (click)="abrirCancelar(c)"
+                style="background:var(--rdbg);color:var(--red);border:1.5px solid var(--rdbdr);border-radius:7px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer">
+                ✕
+              </button>
+              <span *ngIf="isCancelado(c)" style="font-size:11px;color:var(--g4);font-style:italic">
+                Encerrado
+              </span>
+            </div>
+          </td>
+
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ─── Modal: Ver mais ─────────────────────────────────────────────────── -->
+<div *ngIf="modalVerMais"
+  style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="background:white;border-radius:16px;max-width:600px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden;max-height:90vh;display:flex;flex-direction:column">
+
+    <!-- Header -->
+    <div style="background:var(--t8);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="cod" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:white">
+          {{ modalVerMais.cod }}
+        </span>
+        <span style="border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700"
+          [style.background]="getStatusStyle(modalVerMais.status).bg"
+          [style.color]="getStatusStyle(modalVerMais.status).color">
+          {{ modalVerMais.status }}
+        </span>
+      </div>
+      <button (click)="fecharModais()"
+        style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:24px;overflow-y:auto">
+
+      <!-- Contrato / Superintendência -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--g0);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">CONTRATO</div>
+          <div style="font-weight:700;color:var(--g8)">{{ modalVerMais.contratoNome }}</div>
+        </div>
+        <div style="background:var(--g0);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">SUPERINTENDÊNCIA</div>
+          <div style="font-weight:600;color:var(--g6)">{{ modalVerMais.sup }}</div>
+        </div>
+      </div>
+
+      <!-- Cargo -->
+      <div style="background:var(--g0);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">CARGO / FUNÇÃO</div>
+        <div style="font-weight:600;color:var(--g8)">{{ modalVerMais.cargo }}</div>
+      </div>
+
+      <!-- Criticidade -->
+      <div *ngIf="modalVerMais.vagaCritica === 'SIM'"
+        style="background:var(--rdbg);border:1.5px solid var(--rdbdr);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:4px">⚠ VAGA CRÍTICA</div>
+        <div style="font-size:13px;color:var(--g8)">{{ modalVerMais.criticidade || 'Vaga classificada como crítica.' }}</div>
+      </div>
+
+      <!-- SLA + Datas -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--g0);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">SLA DE ALOCAÇÃO</div>
+          <span style="padding:3px 9px;border-radius:6px;font-size:12px;font-weight:700"
+            [style.background]="slaInfo(modalVerMais).bg"
+            [style.color]="slaInfo(modalVerMais).color">
+            {{ slaInfo(modalVerMais).txt }}
+          </span>
+        </div>
+        <div style="background:var(--g0);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">DATA DE CRIAÇÃO</div>
+          <div style="font-weight:600;color:var(--g8)">{{ fmtD(modalVerMais.dataInclusao) }}</div>
+        </div>
+        <div style="background:var(--g0);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:600;color:var(--g4);margin-bottom:4px">SOLICITANTE</div>
+          <div style="font-weight:600;color:var(--g8)">{{ modalVerMais.solicitante }}</div>
+        </div>
+      </div>
+
+      <!-- Profissional(is) -->
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--g8);margin-bottom:10px">
+          Profissional(is) vinculado(s)
+        </div>
+        <div *ngFor="let p of modalVerMais.profs; let i = index"
+          style="border:1.5px solid var(--g2);border-radius:10px;padding:14px 16px;margin-bottom:8px">
+          <div *ngIf="!p.nome" style="font-style:italic;color:var(--ora);font-size:13px">
+            Ainda não há profissional indicado.
+          </div>
+          <ng-container *ngIf="p.nome">
+            <div style="font-weight:700;color:var(--g8);margin-bottom:8px">{{ p.nome }}</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:11px;color:var(--g4);font-weight:600">CUSTO ORIGINAL</div>
+                <div style="font-weight:700;color:var(--g8)">{{ fmtR(p.custo) }}</div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--g4);font-weight:600">ADICIONAL PROPOSTO</div>
+                <div style="font-weight:700;color:var(--ora)">{{ fmtR(p.adic) }}</div>
+              </div>
+              <div *ngIf="p.custo && p.adic">
+                <div style="font-size:11px;color:var(--g4);font-weight:600">CUSTO TOTAL</div>
+                <div style="font-weight:800;color:var(--t6);font-size:15px">{{ fmtR(p.custo! + p.adic!) }}</div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:16px 24px;border-top:1px solid var(--g2);display:flex;justify-content:flex-end;flex-shrink:0">
+      <button class="bp" (click)="fecharModais()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Modal: Cancelar ────────────────────────────────────────────────── -->
+<div *ngIf="modalCancelar"
+  style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="background:white;border-radius:16px;max-width:480px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">
+    <div style="background:var(--red);padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div style="color:white;font-weight:800;font-size:15px">Cancelar Compartilhamento</div>
+      <button (click)="fecharModais()" style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700">✕</button>
+    </div>
+    <div style="padding:24px">
+      <ng-container *ngIf="!canceladoOk">
+        <p style="font-size:14px;color:var(--g8);margin-bottom:12px">
+          Confirmar cancelamento da solicitação:
+        </p>
+        <div style="background:var(--rdbg);border:1.5px solid var(--rdbdr);border-radius:10px;padding:14px 16px;margin-bottom:20px">
+          <div style="font-weight:700;color:var(--g8);margin-bottom:4px">
+            {{ modalCancelar.cod }} — {{ modalCancelar.contratoNome }}
+          </div>
+          <div style="font-size:13px;color:var(--g6)">{{ modalCancelar.cargo }}</div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="bo" (click)="fecharModais()">Voltar</button>
+          <button (click)="confirmarCancelamento()"
+            style="background:var(--red);color:white;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer">
+            Confirmar Cancelamento
+          </button>
+        </div>
+      </ng-container>
+      <div *ngIf="canceladoOk" style="text-align:center;padding:12px 0">
+        <div style="font-size:36px;margin-bottom:12px">✓</div>
+        <div style="font-weight:800;font-size:16px;color:var(--grn);margin-bottom:8px">
+          Cancelado com sucesso
+        </div>
+        <div style="font-size:13px;color:var(--g6);margin-bottom:20px">
+          O registro {{ modalCancelar.cod }} foi cancelado.
+        </div>
+        <button class="bp" (click)="fecharModais()">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,94 @@
+<ng-container *ngIf="sol() as s">
+  <div class="page-inner">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="pi-title">Tratativa Iniciada</div>
+          <span class="cod">{{ cod }}</span>
+          <span *ngIf="s.vagaCritica === 'SIM'"
+            style="background:var(--rdbg);color:var(--red);border:1px solid var(--rdbdr);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:800">
+            VAGA CRÍTICA
+          </span>
+        </div>
+        <div style="font-size:13px;color:var(--g6)">
+          <strong>{{ s.contratoObj?.nome }}</strong> — {{ s.cargo }}
+        </div>
+        <div style="font-size:12px;color:var(--g4);margin-top:2px">
+          {{ fmtD(s.dOS || '') }} — Solicitado por {{ user()?.nome }}
+        </div>
+        <div *ngIf="diasSla !== null" style="margin-top:8px">
+          <span class="sla-p"
+            [class.grn]="diasSla > 7"
+            [class.ora]="diasSla > 0 && diasSla <= 7"
+            [class.red]="diasSla <= 0">
+            {{ diasSla > 0 ? diasSla + ' dias úteis restantes' : 'Prazo SLA encerrado' }}
+          </span>
+        </div>
+        <div *ngIf="s.temOS !== 'sim'" style="margin-top:6px;font-size:12px;color:var(--g4)">
+          Sem Ordem de Serviço aberta
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="bo" (click)="novaBusca()">Nova Busca</button>
+        <button class="bp" (click)="irParaDemandas()">Ir para Demandas</button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--t8)">
+            <th *ngFor="let h of ['Profissional','Cargo','Contrato de Origem','Custo Original','Proposta Adicional']"
+              style="padding:10px 14px;text-align:left;color:white;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">
+              {{ h }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let sl of selected(); let i = index"
+            [style.background]="i % 2 === 0 ? 'white' : 'var(--g0)'"
+            style="border-bottom:1px solid var(--g2)">
+            <td style="padding:12px 14px;font-weight:700;color:var(--g8)">{{ sl.prof.nome }}</td>
+            <td style="padding:12px 14px;color:var(--g6);font-size:12px">{{ sl.prof.cargo }}</td>
+            <td style="padding:12px 14px;color:var(--g6);font-size:12px">{{ sl.prof.contrato.replace('MEMORA.', '') }}</td>
+            <td style="padding:12px 14px;font-weight:600">{{ fmtR(sl.prof.custo) }}</td>
+            <td style="padding:12px 14px;font-weight:700;color:var(--t6)">
+              {{ sl.propostaNum > 0 ? fmtR(sl.propostaNum) : '—' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:16px;padding:14px 16px;background:var(--orbg);border:1.5px solid var(--orbdr);border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:#92400e">
+        E-mail de notificação será enviado para a Superintendente responsável.
+      </span>
+      <button (click)="showEmail = true"
+        style="background:var(--ora);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer">
+        Ver E-mail (Piloto)
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal E-mail -->
+  <div *ngIf="showEmail"
+    style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px">
+    <div style="background:white;border-radius:16px;width:100%;max-width:600px;box-shadow:0 24px 64px rgba(0,0,0,.3);overflow:hidden">
+      <div style="background:var(--t8);padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+        <div style="color:white;font-weight:800;font-size:15px">E-mail de Notificação — {{ cod }}</div>
+        <button (click)="showEmail = false"
+          style="background:rgba(255,255,255,.15);border:none;color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700">✕</button>
+      </div>
+      <div style="padding:20px 24px">
+        <pre style="font-size:12px;color:var(--g6);white-space:pre-wrap;font-family:monospace;background:var(--g0);border-radius:10px;padding:16px;max-height:300px;overflow-y:auto">{{ emailBody }}</pre>
+        <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:10px">
+          <button class="bo" (click)="showEmail = false">Fechar</button>
+          <button class="bp" (click)="copiarEmail()">Copiar E-mail</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</ng-container>

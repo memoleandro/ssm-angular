@@ -1,0 +1,21 @@
+<ng-container *ngIf="isLoggedIn(); else loginOutlet">
+  <div class="app-shell">
+    <app-sidebar
+      [collapsed]="collapsed"
+      [activeItem]="activeItem"
+      (collapseToggle)="collapsed = !collapsed"
+      (navClick)="onNav($event)">
+    </app-sidebar>
+
+    <div class="main-wrap">
+      <app-topbar [user]="user()" (logoutClick)="logout()"></app-topbar>
+      <div class="main-content">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #loginOutlet>
+  <router-outlet></router-outlet>
+</ng-template>
